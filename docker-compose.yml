@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # Container MYSQL   
+  database:
+    image: mysql:8
+    container_name: database
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: db_wevioo
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 
+      MYSQL_ROOT_PASSWORD: 
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - dev
+
+  # Container PHPMYADMIN
+  phpmyadmin:
+    depends_on:
+      - database
+    image: phpmyadmin
+    container_name: phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: database
+    ports:
+      - "8090:80"
+    networks:
+      - dev
+      
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ./Dockerfile
+    container_name: backend
+    ports:
+      - "9000:80"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/:/var/www/html
+    depends_on:
+      - database
+    networks:
+      - dev
+  
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ./Dockerfile
+    container_name: frontend
+    ports : 
+      - "3000:3000" 
+    volumes: 
+     - "./frontend/:/app"
+    depends_on : 
+      - backend
+    networks:
+      - dev
+      
+  filegenerator:
+    build:
+      context: ./filegenerator
+      dockerfile: ./Dockerfile
+    container_name: filegenerator
+    ports : 
+      - "5000:5000" 
+    volumes: 
+     - "./filegenerator/:/app"
+    depends_on : 
+      - database
+    networks:
+      - dev
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile-nginx
+    container_name: nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./backend/:/var/www/html
+    networks:
+      - dev
+
+networks:
+  dev:
+
+volumes:
+  db_data:
